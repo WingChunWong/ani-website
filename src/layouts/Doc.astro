@@ -205,17 +205,31 @@ posts.forEach((post)=>{
       if (tocPlaceholder) {
         tocPlaceholder.remove();
       }
+
+      // Collect all headers and proposed IDs first to handle duplicates
+      const headerData = Array.from(headers).map((header, index) => {
+        const text = header.textContent?.trim() || `heading-${index}`;
+        const proposedId = text.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '');
+        return { header, text, proposedId };
+      });
+
+      // Resolve unique IDs
+      const usedIds = new Set();
+      headerData.forEach(({ header, text, proposedId }) => {
+        let id = proposedId;
+        let counter = 1;
+        while (usedIds.has(id)) {
+          id = `${proposedId}-${counter}`;
+          counter++;
+        }
+        usedIds.add(id);
+        header.id = id;
+      });
       
       const fragment = document.createDocumentFragment();
       
-      headers.forEach((header, index) => {
-        if (!header.id) {
-          const text = header.textContent || `heading-${index}`;
-          header.id = text.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '');
-        }
-        
-        let titleText = header.textContent || '';
-        titleText = titleText.replace(/^\s*#\s*/g, '').trim();
+      headerData.forEach(({ header, text: originalText }) => {
+        let titleText = originalText.replace(/^\s*#\s*/g, '').trim();
         titleText = titleText.replace(/\s*#\s*$/g, '').trim();
         
         const level = parseInt(header.tagName.substring(1));
